@@ -115,7 +115,7 @@ int main() {
         return 1;
     }
 
-    // compiler_dump_all(compiler, 0);
+    compiler_dump_all(compiler, 1);
 
     run_jit(compiler);
 

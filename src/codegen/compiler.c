@@ -18,9 +18,18 @@
 
 #define malloc_s(t) ((t *) malloc(sizeof(t)))
 
+typedef enum type_flags_t {
+    TYPE_ANY = 0,
+    TYPE_INT = 1,
+    TYPE_SIGNED = 2,
+    TYPE_UNSIGNED = 0,
+} type_flags_t;
+
 typedef struct type_t {
     wchar_t *name;
     LLVMTypeRef llvm_type;
+    type_flags_t flags;
+    int size; // Size in bytes
 } type_t;
 
 typedef struct typed_value_t {
@@ -65,7 +74,16 @@ struct compiler_t {
 
     type_t *void_type;
     type_t *bool_type;
+
+    type_t *int8_type;
+    type_t *int16_type;
     type_t *int32_type;
+    type_t *int64_type;
+
+    type_t *uint8_type;
+    type_t *uint16_type;
+    type_t *uint32_type;
+    type_t *uint64_type;
 
     compiler_opt_level_t opt_level;
     LLVMPassManagerRef function_pm;
@@ -83,10 +101,12 @@ static char *to_mbs(const wchar_t *str) {
     return wcstombs_buffer;
 }
 
-static type_t *create_type(wchar_t *name, LLVMTypeRef llvm_type) {
+static type_t *create_type(wchar_t *name, LLVMTypeRef llvm_type, type_flags_t flags, int size) {
     type_t *type = malloc_s(type_t);
     type->name = name;
     type->llvm_type = llvm_type;
+    type->flags = flags;
+    type->size = size;
     return type;
 }
 
@@ -166,46 +186,42 @@ static typed_value_t *compile_variable_expr(compiler_t *compiler, variable_expr_
     value->value = LLVMBuildLoad2(compiler->builder, variable->type->llvm_type, variable->value, "load_tmp");
     return value;
 }
-/*
- *
-        L"==",
-        L"!=",
-        L"<",
-        L"<=",
-        L">",
-        L">=",
-        L"+",
-        L"-",
-        L"*",
-        L"/",
- */
 
-static typed_value_t *create_int_binop_inst(compiler_t *compiler, wchar_t *op, LLVMValueRef lhs, LLVMValueRef rhs) {
+static typed_value_t *create_arithmetic_int_binop_inst(LLVMBuilderRef builder, type_t *int_type, wchar_t *op, LLVMValueRef lhs, LLVMValueRef rhs) {
     typed_value_t *value = malloc_s(typed_value_t);
 
     if (!wcscmp(L"+", op)) {
-        value->type = compiler->int32_type;
-        value->value = LLVMBuildAdd(compiler->builder, lhs, rhs, "add_tmp");
+        value->type = int_type;
+        value->value = LLVMBuildAdd(builder, lhs, rhs, "add_tmp");
         return value;
     }
 
     if (!wcscmp(L"-", op)) {
-        value->type = compiler->int32_type;
-        value->value = LLVMBuildSub(compiler->builder, lhs, rhs, "sub_tmp");
+        value->type = int_type;
+        value->value = LLVMBuildSub(builder, lhs, rhs, "sub_tmp");
         return value;
     }
 
     if (!wcscmp(L"*", op)) {
-        value->type = compiler->int32_type;
-        value->value = LLVMBuildMul(compiler->builder, lhs, rhs, "mul_tmp");
+        value->type = int_type;
+        value->value = LLVMBuildMul(builder, lhs, rhs, "mul_tmp");
         return value;
     }
 
     if (!wcscmp(L"/", op)) {
-        value->type = compiler->int32_type;
-        value->value = LLVMBuildSDiv(compiler->builder, lhs, rhs, "mul_tmp");
+        value->type = int_type;
+        value->value = LLVMBuildSDiv(builder, lhs, rhs, "mul_tmp");
         return value;
     }
+
+    free(value);
+    return NULL;
+}
+
+static typed_value_t *create_comp_int_binop_inst(compiler_t *compiler, type_t *int_type, wchar_t *op, LLVMValueRef lhs, LLVMValueRef rhs) {
+    typed_value_t *value = malloc_s(typed_value_t);
+
+    int is_signed = (int_type->flags & TYPE_SIGNED) != 0;
 
     if (!wcscmp(L"==", op)) {
         value->type = compiler->bool_type;
@@ -221,29 +237,39 @@ static typed_value_t *create_int_binop_inst(compiler_t *compiler, wchar_t *op, L
 
     if (!wcscmp(L"<", op)) {
         value->type = compiler->bool_type;
-        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSLT, lhs, rhs, "slt_tmp");
+        value->value = LLVMBuildICmp(compiler->builder, is_signed ? LLVMIntSLT : LLVMIntULT, lhs, rhs, "lt_tmp");
         return value;
     }
 
     if (!wcscmp(L"<=", op)) {
         value->type = compiler->bool_type;
-        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSLE, lhs, rhs, "sle_tmp");
+        value->value = LLVMBuildICmp(compiler->builder, is_signed ? LLVMIntSLE : LLVMIntULE, lhs, rhs, "le_tmp");
         return value;
     }
 
     if (!wcscmp(L">", op)) {
         value->type = compiler->bool_type;
-        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSGT, lhs, rhs, "sgt_tmp");
+        value->value = LLVMBuildICmp(compiler->builder, is_signed ? LLVMIntSGT : LLVMIntUGT, lhs, rhs, "gt_tmp");
         return value;
     }
 
     if (!wcscmp(L">=", op)) {
         value->type = compiler->bool_type;
-        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSGE, lhs, rhs, "sge_tmp");
+        value->value = LLVMBuildICmp(compiler->builder, is_signed ? LLVMIntSGE : LLVMIntUGE, lhs, rhs, "ge_tmp");
         return value;
     }
 
     free(value);
+    return NULL;
+}
+
+static typed_value_t *create_int_binop_inst(compiler_t *compiler, type_t *int_type, wchar_t *op, LLVMValueRef lhs, LLVMValueRef rhs) {
+    typed_value_t *value = create_arithmetic_int_binop_inst(compiler->builder, int_type, op, lhs, rhs);
+    if (value != NULL) return value;
+
+    value = create_comp_int_binop_inst(compiler, int_type, op, lhs, rhs);
+    if (value != NULL) return value;
+
     return NULL;
 }
 
@@ -265,6 +291,64 @@ static typed_value_t *create_bool_cmp_inst(compiler_t *compiler, wchar_t *op, LL
     return NULL;
 }
 
+#define cant_cast() fprintf(stderr, "Can't cast from %ls to %ls!\n", value->type->name, dest_type->name); return NULL
+
+static typed_value_t *cast_to_int(compiler_t *compiler, typed_value_t *value, type_t *dest_type) {
+    if ((value->type->flags & TYPE_INT) == 0) {
+        cant_cast();
+    }
+
+    int is_signed = (dest_type->flags & TYPE_SIGNED) != 0;
+
+    if (dest_type->size > value->type->size) {
+        // The new type can fit all possible values of the old one, so we don't do signed conversion.
+        is_signed = 0;
+    }
+
+    typed_value_t *cast_value = malloc_s(typed_value_t);
+    cast_value->type = dest_type;
+    cast_value->value = LLVMBuildIntCast2(compiler->builder, value->value, dest_type->llvm_type, is_signed, "cast_tmp");
+    return cast_value;
+}
+
+static typed_value_t *cast_value(compiler_t *compiler, typed_value_t *value, type_t *dest_type) {
+    if ((dest_type->flags & TYPE_INT) != 0) {
+        return cast_to_int(compiler, value, dest_type);
+    }
+
+    cant_cast();
+}
+
+#define is_int(tv) ((tv->type->flags & TYPE_INT) != 0)
+#define is_unsigned(tv) ((tv->type->flags & TYPE_UNSIGNED) != 0)
+
+static void do_type_coercion(compiler_t *compiler, typed_value_t **lhs_out, typed_value_t **rhs_out) {
+    typed_value_t *lhs = *lhs_out;
+    typed_value_t *rhs = *rhs_out;
+
+    if (lhs->type == rhs->type) return;
+
+    if (!is_int(lhs) || !is_int(rhs)) return;
+
+    // We don't do type coercion when signedness isn't the same.
+    if (is_unsigned(lhs) != is_unsigned(rhs)) return;
+
+    int is_rhs_smaller = rhs->type->size < lhs->type->size;
+    typed_value_t *value_to_coerce = is_rhs_smaller ? rhs : lhs;
+    type_t *type_to_coerce_to = is_rhs_smaller ? lhs->type : rhs->type;
+
+    typed_value_t *coerced_value = cast_to_int(compiler, value_to_coerce, type_to_coerce_to);
+
+    if (is_rhs_smaller) {
+        rhs = coerced_value;
+    } else {
+        lhs = coerced_value;
+    }
+
+    *lhs_out = lhs;
+    *rhs_out = rhs;
+}
+
 static typed_value_t *compile_binary_expr(compiler_t *compiler, binary_expr_t *binary_expr) {
     typed_value_t *lhs = compile_expr(compiler, binary_expr->data->lhs, 0);
     if (lhs == NULL) return NULL;
@@ -274,6 +358,8 @@ static typed_value_t *compile_binary_expr(compiler_t *compiler, binary_expr_t *b
         free(lhs);
         return NULL;
     }
+
+    do_type_coercion(compiler, &lhs, &rhs);
 
     if (lhs->type != rhs->type) {
         fprintf(stderr, "Types in binary don't match! (%ls and %ls)\n", lhs->type->name, rhs->type->name);
@@ -288,17 +374,17 @@ static typed_value_t *compile_binary_expr(compiler_t *compiler, binary_expr_t *b
     typed_value_t *value = NULL;
     if (lhs->type == compiler->bool_type) {
         value = create_bool_cmp_inst(compiler, op, lhs->value, rhs->value);
-    } else if (lhs->type == compiler->int32_type) {
-        value = create_int_binop_inst(compiler, op, lhs->value, rhs->value);
+    } else if ((lhs->type->flags & TYPE_INT) != 0) {
+        value = create_int_binop_inst(compiler, lhs->type, op, lhs->value, rhs->value);
     }
-
-    free(lhs);
-    free(rhs);
 
     if (value == NULL) {
         fprintf(stderr, "Unknown binary operator '%ls' for type %ls!\n", op, lhs->type->name);
         return NULL;
     }
+
+    free(lhs);
+    free(rhs);
 
     return value;
 }
@@ -497,6 +583,19 @@ static typed_value_t *compile_if_expr(compiler_t *compiler, if_expr_t *if_expr, 
     return if_value;
 }
 
+static typed_value_t *compile_cast_expr(compiler_t *compiler, cast_expr_t *expr) {
+    typed_value_t *value = compile_expr(compiler, expr->data->value, 0);
+    if (value == NULL) return NULL;
+
+    type_t *type = find_type(compiler, expr->data->type);
+    if (type == NULL) {
+        fprintf(stderr, "Unknown type %ls!\n", expr->data->type);
+        return NULL;
+    }
+
+    return cast_value(compiler, value, type);
+}
+
 static typed_value_t *compile_expr(compiler_t *compiler, expr_t *expr, int is_stmt) {
     switch (expr->expr_type) {
         case EXPR_INT:
@@ -511,6 +610,8 @@ static typed_value_t *compile_expr(compiler_t *compiler, expr_t *expr, int is_st
             return compile_call_expr(compiler, (call_expr_t *) expr);
         case EXPR_IF:
             return compile_if_expr(compiler, (if_expr_t *) expr, is_stmt);
+        case EXPR_CAST:
+            return compile_cast_expr(compiler, (cast_expr_t *) expr);
     }
 }
 
@@ -616,6 +717,18 @@ static typed_value_t *compile_assignment(compiler_t *compiler, assignment_stmt_d
     if (!(variable->flags & VAR_IS_MUTABLE) && (variable->flags & VAR_IS_INITIALIZED)) {
         fprintf(stderr, "Can't assign to immutable variable %ls!\n", data->name);
         return NULL;
+    }
+
+    if (value->type != variable->type) {
+        // We only do implicit type conversion for constant integers as of now.
+        int is_value_int = (value->type->flags & TYPE_INT) != 0;
+        int is_var_int = (variable->type->flags & TYPE_INT) != 0;
+        if (!is_value_int || !is_var_int) {
+            fprintf(stderr, "Can't do implicit type conversion between %ls and %ls!\n", value->type->name, variable->type->name);
+            return NULL;
+        }
+
+        value = cast_to_int(compiler, value, variable->type);
     }
 
     variable->flags |= VAR_IS_INITIALIZED;
@@ -802,6 +915,35 @@ static function_t *compile_top_level_statement(compiler_t *compiler, stmt_t *stm
     }
 }
 
+static void init_types(compiler_t *compiler) {
+    compiler->void_type = create_type(L"Void", LLVMVoidTypeInContext(compiler->context), TYPE_ANY, 0);
+    compiler->bool_type = create_type(L"Bool", LLVMInt1TypeInContext(compiler->context), TYPE_ANY, 1);
+
+    compiler->int8_type = create_type(L"Int8", LLVMInt8TypeInContext(compiler->context), TYPE_INT | TYPE_SIGNED, 1);
+    compiler->int16_type = create_type(L"Int16", LLVMInt16TypeInContext(compiler->context), TYPE_INT | TYPE_SIGNED, 2);
+    compiler->int32_type = create_type(L"Int32", LLVMInt32TypeInContext(compiler->context), TYPE_INT | TYPE_SIGNED, 4);
+    compiler->int64_type = create_type(L"Int64", LLVMInt64TypeInContext(compiler->context), TYPE_INT | TYPE_SIGNED, 8);
+
+    compiler->uint8_type = create_type(L"UInt8", LLVMInt8TypeInContext(compiler->context), TYPE_INT | TYPE_UNSIGNED, 1);
+    compiler->uint16_type = create_type(L"UInt16", LLVMInt16TypeInContext(compiler->context), TYPE_INT | TYPE_UNSIGNED, 2);
+    compiler->uint32_type = create_type(L"UInt32", LLVMInt32TypeInContext(compiler->context), TYPE_INT | TYPE_UNSIGNED, 4);
+    compiler->uint64_type = create_type(L"UInt64", LLVMInt64TypeInContext(compiler->context), TYPE_INT | TYPE_UNSIGNED, 8);
+
+    compiler->types = ptr_list_new();
+    ptr_list_push(compiler->types, compiler->void_type);
+    ptr_list_push(compiler->types, compiler->bool_type);
+
+    ptr_list_push(compiler->types, compiler->int8_type);
+    ptr_list_push(compiler->types, compiler->int16_type);
+    ptr_list_push(compiler->types, compiler->int32_type);
+    ptr_list_push(compiler->types, compiler->int64_type);
+
+    ptr_list_push(compiler->types, compiler->uint8_type);
+    ptr_list_push(compiler->types, compiler->uint16_type);
+    ptr_list_push(compiler->types, compiler->uint32_type);
+    ptr_list_push(compiler->types, compiler->uint64_type);
+}
+
 compiler_t *compiler_new(ptr_list_t *stmts, compiler_opt_level_t opt_level) {
     compiler_t *compiler = (compiler_t *) malloc(sizeof(compiler_t));
 
@@ -813,14 +955,7 @@ compiler_t *compiler_new(ptr_list_t *stmts, compiler_opt_level_t opt_level) {
     compiler->functions = ptr_list_new();
     compiler->top_level_statements = stmts;
 
-    compiler->void_type = create_type(L"Void", LLVMVoidTypeInContext(compiler->context));
-    compiler->bool_type = create_type(L"Bool", LLVMInt1TypeInContext(compiler->context));
-    compiler->int32_type = create_type(L"Int32", LLVMInt32TypeInContext(compiler->context));
-
-    compiler->types = ptr_list_new();
-    ptr_list_push(compiler->types, compiler->void_type);
-    ptr_list_push(compiler->types, compiler->bool_type);
-    ptr_list_push(compiler->types, compiler->int32_type);
+    init_types(compiler);
 
     compiler->opt_level = opt_level;
     compiler->function_pm = NULL;

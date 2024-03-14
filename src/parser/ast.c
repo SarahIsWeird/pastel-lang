@@ -35,6 +35,7 @@ void print_stmt(stmt_t *stmt, int indent) {
     size_t i;
     function_stmt_data_t *func_data;
     assignment_stmt_data_t *ass_data; // hehe
+    while_stmt_data_t *while_data;
 
     print_indent(indent);
 
@@ -79,6 +80,21 @@ void print_stmt(stmt_t *stmt, int indent) {
             ass_data = ((assignment_stmt_t *) stmt)->data;
             wprintf(L"Assignment to %ls\n", ass_data->name);
             print_expr(ass_data->value, indent + 2);
+            break;
+        case STMT_WHILE:
+            while_data = ((while_stmt_t *) stmt)->data;
+            wprintf(L"While\n");
+
+            print_indent(indent + 2);
+            wprintf(L"Condition:\n");
+            print_expr(while_data->condition, indent + 4);
+
+            print_indent(indent + 2);
+            wprintf(L"Body:\n");
+            for (i = 0; i < ptr_list_size(while_data->body); i++) {
+                stmt_t *body_stmt = (stmt_t *) ptr_list_at(while_data->body, i);
+                print_stmt(body_stmt, indent + 4);
+            }
             break;
     }
 }

@@ -47,6 +47,7 @@ static operator_precedence_t operator_precedences[] = {
         { L"-", 30 },
         { L"*", 40 },
         { L"/", 40 },
+        { L"to", 100 }, // Cast binds very strongly
 };
 
 static size_t operator_count = sizeof(operator_precedences) / sizeof(operator_precedence_t);
@@ -301,6 +302,20 @@ static expr_t *parse_binary_expr_rhs(parser_t *parser, expr_t *lhs, int preceden
 
         wchar_t *op = get_operator();
         advance();
+
+        if (!wcscmp(L"to", op)) {
+            assert_is_identifier();
+
+            cast_expr_data_t *data = (cast_expr_data_t *) malloc(sizeof(cast_expr_data_t));
+            data->value = lhs;
+            data->type = get_identifier();
+            advance();
+
+            lhs = (expr_t *) malloc(sizeof(cast_expr_t));
+            lhs->expr_type = EXPR_CAST;
+            lhs->data = data;
+            continue;
+        }
 
         expr_t *rhs = parse_primary(parser);
         if (rhs == NULL) return NULL;
