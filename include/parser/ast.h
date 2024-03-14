@@ -6,7 +6,7 @@
 #define PASTEL_AST_H
 
 #include <stddef.h>
-#include "../util/ptr_list.h"
+#include "../../src/util/ptr_list.h"
 
 typedef enum expr_type_t {
     EXPR_INT,

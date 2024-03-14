@@ -6,7 +6,7 @@
 #define PASTEL_COMPILER_H
 
 #include <llvm-c/Types.h>
-#include "../util/ptr_list.h"
+#include "../../src/util/ptr_list.h"
 
 typedef enum compiler_opt_level_t {
     OPT_NONE,

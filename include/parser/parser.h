@@ -5,7 +5,7 @@
 #ifndef PASTEL_PARSER_H
 #define PASTEL_PARSER_H
 
-#include "../util/ptr_list.h"
+#include "../../src/util/ptr_list.h"
 
 typedef struct parser_t parser_t;
 

@@ -11,9 +11,7 @@ func main() {
     print_n(test);
 
     var ii: UInt8 = 0;
-    test = 0;
-    while (test < 260) {
-        test = test + 1;
+    while (ii < 10) {
         ii = ii + 1;
         print_n(ii to Int32);
     }

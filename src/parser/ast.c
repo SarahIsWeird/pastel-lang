@@ -2,7 +2,7 @@
 // Created by sarah on 3/12/24.
 //
 
-#include "ast.h"
+#include "parser/ast.h"
 
 #include <wchar.h>
 
@@ -104,6 +104,7 @@ void print_expr(expr_t *expr, int indent) {
     binary_expr_data_t *binary_expr_data;
     call_expr_data_t *call_expr_data;
     if_expr_data_t *if_expr_data;
+    cast_expr_data_t *cast_expr_data;
 
     print_indent(indent);
 
@@ -155,6 +156,11 @@ void print_expr(expr_t *expr, int indent) {
                 }
             }
 
+            break;
+        case EXPR_CAST:
+            cast_expr_data = ((cast_expr_t *) expr)->data;
+            wprintf(L"Cast to %ls\n", cast_expr_data->type);
+            print_expr(cast_expr_data->value, indent + 2);
             break;
     }
 }
