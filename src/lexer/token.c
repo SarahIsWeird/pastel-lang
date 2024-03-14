@@ -4,7 +4,7 @@
 
 #include <malloc.h>
 #include <wchar.h>
-#include "token.h"
+#include "lexer/token.h"
 
 token_t *token_new(token_type_t type, token_pos_t token_pos) {
     token_t *token = (token_t *) malloc(sizeof(token_t));
@@ -88,6 +88,8 @@ static const wchar_t *DEBUG_keyword_str(keyword_t keyword) {
             return L"return";
         case KEYWORD_EXTERN:
             return L"extern";
+        case KEYWORD_WHILE:
+            return L"while";
     }
 }
 

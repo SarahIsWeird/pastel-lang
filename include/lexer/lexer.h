@@ -6,7 +6,7 @@
 #define PASTEL_LEXER_H
 
 #include <stddef.h>
-#include "../util/ptr_list.h"
+#include "../../src/util/ptr_list.h"
 
 typedef struct lexer_t lexer_t;
 

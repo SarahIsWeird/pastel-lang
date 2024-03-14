@@ -2,9 +2,9 @@
 // Created by sarah on 3/12/24.
 //
 
-#include "parser.h"
-#include "ast.h"
-#include "../lexer/token.h"
+#include "parser/parser.h"
+#include "parser/ast.h"
+#include "lexer/token.h"
 
 #include <stdlib.h>
 #include <stdio.h>

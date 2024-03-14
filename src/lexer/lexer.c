@@ -2,22 +2,22 @@
 // Created by sarah on 3/12/24.
 //
 
-#include "lexer.h"
-#include "token.h"
+#include "lexer/lexer.h"
+#include "lexer/token.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
 #include <wchar.h>
 #include <wctype.h>
 
-typedef struct lexer_t {
+struct lexer_t {
     const wchar_t *input;
     size_t size;
     size_t position;
     token_pos_t current_token_pos;
     ptr_list_t *lexed_tokens;
     int done;
-} lexer_t;
+};
 
 typedef struct keyword_type_t {
     const wchar_t *str;
