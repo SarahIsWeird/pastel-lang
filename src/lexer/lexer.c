@@ -19,6 +19,43 @@ typedef struct lexer_t {
     int done;
 } lexer_t;
 
+typedef struct keyword_type_t {
+    const wchar_t *str;
+    keyword_t value;
+} keyword_type_t;
+
+static keyword_type_t keywords[] = {
+        { L"func", KEYWORD_FUNCTION },
+        { L"if", KEYWORD_IF },
+        { L"else", KEYWORD_ELSE },
+        { L"for", KEYWORD_FOR },
+        { L"let", KEYWORD_LET },
+        { L"var", KEYWORD_VAR },
+        { L"true", KEYWORD_TRUE },
+        { L"false", KEYWORD_FALSE },
+        { L"return", KEYWORD_RETURN },
+        { L"extern", KEYWORD_EXTERN },
+        { L"while", KEYWORD_WHILE },
+};
+
+static size_t keyword_count = sizeof(keywords) / sizeof(keyword_type_t);
+
+static wchar_t *operators[] = {
+        L"==",
+        L"!=",
+        L"<",
+        L"<=",
+        L">",
+        L">=",
+        L"+",
+        L"-",
+        L"*",
+        L"/",
+        L"to",
+};
+
+static size_t operator_count = sizeof(operators) / sizeof(wchar_t *);
+
 #define is_eof() (lexer->size == lexer->position)
 #define current_char() (lexer->input[lexer->position])
 #define next_char() (lexer->input[lexer->position + 1])
@@ -65,26 +102,16 @@ static void skip_until_newline(lexer_t *lexer) {
     }
 }
 
-typedef struct keyword_type_t {
-    const wchar_t *str;
-    keyword_t value;
-} keyword_type_t;
+static token_operator_t *get_operator(const wchar_t *start, size_t length, token_pos_t token_pos) {
+    size_t i;
+    for (i = 0; i < operator_count; i++) {
+        if (!wcsncmp(operators[i], start, length)) {
+            return token_new_operator(start, length, token_pos);
+        }
+    }
 
-static keyword_type_t keywords[] = {
-        { L"func", KEYWORD_FUNCTION },
-        { L"if", KEYWORD_IF },
-        { L"else", KEYWORD_ELSE },
-        { L"for", KEYWORD_FOR },
-        { L"let", KEYWORD_LET },
-        { L"var", KEYWORD_VAR },
-        { L"true", KEYWORD_TRUE },
-        { L"false", KEYWORD_FALSE },
-        { L"return", KEYWORD_RETURN },
-        { L"extern", KEYWORD_EXTERN },
-        { L"while", KEYWORD_WHILE },
-};
-
-static size_t keyword_count = sizeof(keywords) / sizeof(keyword_type_t);
+    return NULL;
+}
 
 static token_keyword_t *get_keyword(const wchar_t *start, size_t length, token_pos_t token_pos) {
     size_t i;
@@ -116,6 +143,11 @@ static token_t *lex_identifier(lexer_t *lexer) {
         return (token_t *) keyword_token;
     }
 
+    token_operator_t *operator_token = get_operator(start, length, pos);
+    if (operator_token != NULL) {
+        return (token_t *) operator_token;
+    }
+
     return (token_t *) token_new_identifier(start, length, pos);
 }
 
@@ -130,21 +162,6 @@ static token_t *lex_number(lexer_t *lexer) {
 
     return (token_t *) token_new_integer(value, pos);
 }
-
-static wchar_t *operators[] = {
-        L"==",
-        L"!=",
-        L"<",
-        L"<=",
-        L">",
-        L">=",
-        L"+",
-        L"-",
-        L"*",
-        L"/",
-};
-
-static size_t operator_count = sizeof(operators) / sizeof(wchar_t *);
 
 static int is_operator_starting(lexer_t *lexer) {
     size_t i;

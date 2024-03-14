@@ -15,6 +15,7 @@ typedef enum expr_type_t {
     EXPR_BINARY,
     EXPR_CALL,
     EXPR_IF,
+    EXPR_CAST,
 } expr_type_t;
 
 typedef enum stmt_type_t {
@@ -67,6 +68,11 @@ typedef struct if_expr_data_t {
     ptr_list_t *else_stmts; // List<stmt_t *>
 } if_expr_data_t;
 
+typedef struct cast_expr_data_t {
+    expr_t *value;
+    wchar_t *type;
+} cast_expr_data_t;
+
 /* Expressions */
 
 struct expr_t {
@@ -103,6 +109,11 @@ typedef struct if_expr_t {
     expr_type_t expr_type;
     if_expr_data_t *data;
 } if_expr_t;
+
+typedef struct cast_expr_t {
+    expr_type_t expr_type;
+    cast_expr_data_t *data;
+} cast_expr_t;
 
 /* Statement data */
 
