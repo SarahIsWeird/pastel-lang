@@ -24,6 +24,7 @@ typedef enum keyword_t {
     KEYWORD_FALSE,
     KEYWORD_RETURN,
     KEYWORD_EXTERN,
+    KEYWORD_WHILE,
 } keyword_t;
 
 typedef struct token_pos_t {

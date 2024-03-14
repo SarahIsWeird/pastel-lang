@@ -108,7 +108,7 @@ int main() {
     parser_t *parser = parser_new(tokens);
     ptr_list_t *top_level_stmts = parser_parse_all(parser);
 
-    // dump_ast(top_level_stmts);
+    dump_ast(top_level_stmts);
 
     compiler_t *compiler = compiler_new(top_level_stmts, OPT_ALL);
     if (compiler_compile(compiler)) {

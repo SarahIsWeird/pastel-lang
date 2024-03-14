@@ -166,6 +166,104 @@ static typed_value_t *compile_variable_expr(compiler_t *compiler, variable_expr_
     value->value = LLVMBuildLoad2(compiler->builder, variable->type->llvm_type, variable->value, "load_tmp");
     return value;
 }
+/*
+ *
+        L"==",
+        L"!=",
+        L"<",
+        L"<=",
+        L">",
+        L">=",
+        L"+",
+        L"-",
+        L"*",
+        L"/",
+ */
+
+static typed_value_t *create_int_binop_inst(compiler_t *compiler, wchar_t *op, LLVMValueRef lhs, LLVMValueRef rhs) {
+    typed_value_t *value = malloc_s(typed_value_t);
+
+    if (!wcscmp(L"+", op)) {
+        value->type = compiler->int32_type;
+        value->value = LLVMBuildAdd(compiler->builder, lhs, rhs, "add_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"-", op)) {
+        value->type = compiler->int32_type;
+        value->value = LLVMBuildSub(compiler->builder, lhs, rhs, "sub_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"*", op)) {
+        value->type = compiler->int32_type;
+        value->value = LLVMBuildMul(compiler->builder, lhs, rhs, "mul_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"/", op)) {
+        value->type = compiler->int32_type;
+        value->value = LLVMBuildSDiv(compiler->builder, lhs, rhs, "mul_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"==", op)) {
+        value->type = compiler->bool_type;
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntEQ, lhs, rhs, "eq_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"!=", op)) {
+        value->type = compiler->bool_type;
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntNE, lhs, rhs, "ne_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"<", op)) {
+        value->type = compiler->bool_type;
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSLT, lhs, rhs, "slt_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"<=", op)) {
+        value->type = compiler->bool_type;
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSLE, lhs, rhs, "sle_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L">", op)) {
+        value->type = compiler->bool_type;
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSGT, lhs, rhs, "sgt_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L">=", op)) {
+        value->type = compiler->bool_type;
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntSGE, lhs, rhs, "sge_tmp");
+        return value;
+    }
+
+    free(value);
+    return NULL;
+}
+
+static typed_value_t *create_bool_cmp_inst(compiler_t *compiler, wchar_t *op, LLVMValueRef lhs, LLVMValueRef rhs) {
+    typed_value_t *value = malloc_s(typed_value_t);
+    value->type = compiler->bool_type;
+
+    if (!wcscmp(L"==", op)) {
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntEQ, lhs, rhs, "eq_tmp");
+        return value;
+    }
+
+    if (!wcscmp(L"!=", op)) {
+        value->value = LLVMBuildICmp(compiler->builder, LLVMIntNE, lhs, rhs, "ne_tmp");
+        return value;
+    }
+
+    free(value);
+    return NULL;
+}
 
 static typed_value_t *compile_binary_expr(compiler_t *compiler, binary_expr_t *binary_expr) {
     typed_value_t *lhs = compile_expr(compiler, binary_expr->data->lhs, 0);
@@ -187,25 +285,18 @@ static typed_value_t *compile_binary_expr(compiler_t *compiler, binary_expr_t *b
 
     wchar_t *op = binary_expr->data->op;
 
-    typed_value_t *value = malloc_s(typed_value_t);
-    value->type = lhs->type;
-    value->value = NULL;
-
-    if (!wcscmp(L"+", op)) {
-        value->value = LLVMBuildAdd(compiler->builder, lhs->value, rhs->value, "add_tmp");
-    } else if (!wcscmp(L"-", op)) {
-        value->value = LLVMBuildSub(compiler->builder, lhs->value, rhs->value, "sub_tmp");
-    } else if (!wcscmp(L"*", op)) {
-        value->value = LLVMBuildMul(compiler->builder, lhs->value, rhs->value, "mul_tmp");
-    } else if (!wcscmp(L"==", op)) {
-        value->value = LLVMBuildICmp(compiler->builder, LLVMIntEQ, lhs->value, rhs->value, "eq_tmp");
+    typed_value_t *value = NULL;
+    if (lhs->type == compiler->bool_type) {
+        value = create_bool_cmp_inst(compiler, op, lhs->value, rhs->value);
+    } else if (lhs->type == compiler->int32_type) {
+        value = create_int_binop_inst(compiler, op, lhs->value, rhs->value);
     }
 
     free(lhs);
     free(rhs);
 
-    if (value->value == NULL) {
-        fprintf(stderr, "Unknown binary operator '%ls'!\n", op);
+    if (value == NULL) {
+        fprintf(stderr, "Unknown binary operator '%ls' for type %ls!\n", op, lhs->type->name);
         return NULL;
     }
 
@@ -535,6 +626,53 @@ static typed_value_t *compile_assignment(compiler_t *compiler, assignment_stmt_d
     return ret;
 }
 
+static typed_value_t *compile_while(compiler_t *compiler, while_stmt_data_t *data) {
+    LLVMValueRef current_function = LLVMGetBasicBlockParent(LLVMGetInsertBlock(compiler->builder));
+
+
+    LLVMBasicBlockRef cond_block = LLVMAppendBasicBlockInContext(compiler->context, current_function, "loop_cond");
+    LLVMBasicBlockRef loop_body = LLVMCreateBasicBlockInContext(compiler->context, "loop_body");
+    LLVMBasicBlockRef cont_block = LLVMCreateBasicBlockInContext(compiler->context, "loop_cont");
+
+    LLVMBuildBr(compiler->builder, cond_block);
+    LLVMPositionBuilderAtEnd(compiler->builder, cond_block);
+
+    typed_value_t *condition = compile_expr(compiler, data->condition, 0);
+    if (condition == NULL) return NULL;
+    if (condition->type != compiler->bool_type) {
+        fprintf(stderr, "Expected boolean type for while condition, but got %ls!\n", condition->type->name);
+        return NULL;
+    }
+
+    typed_value_t *ret = malloc_s(typed_value_t);
+    ret->type = compiler->void_type;
+    ret->value = LLVMBuildCondBr(compiler->builder, condition->value, loop_body, cont_block);
+
+    LLVMAppendExistingBasicBlock(current_function, loop_body);
+    LLVMPositionBuilderAtEnd(compiler->builder, loop_body);
+
+    size_t i;
+    for (i = 0; i < ptr_list_size(data->body); i++) {
+        stmt_t *stmt = (stmt_t *) ptr_list_at(data->body, i);
+        typed_value_t *value = compile_stmt(compiler, stmt);
+        if (value == NULL) return NULL;
+
+        if (stmt->stmt_type == STMT_RETURN) {
+            free(ret);
+            ret = value;
+            break;
+        }
+    }
+
+    if (!LLVMIsAReturnInst(ret->value)) {
+        LLVMBuildBr(compiler->builder, cond_block);
+        LLVMAppendExistingBasicBlock(current_function, cont_block);
+        LLVMPositionBuilderAtEnd(compiler->builder, cont_block);
+    }
+
+    return ret;
+}
+
 static typed_value_t *compile_stmt(compiler_t *compiler, stmt_t *stmt) {
     switch (stmt->stmt_type) {
         case STMT_RETURN:
@@ -543,6 +681,8 @@ static typed_value_t *compile_stmt(compiler_t *compiler, stmt_t *stmt) {
             return compile_expr(compiler, ((expr_stmt_t *) stmt)->expr, 1);
         case STMT_ASSIGNMENT:
             return compile_assignment(compiler, ((assignment_stmt_t *) stmt)->data);
+        case STMT_WHILE:
+            return compile_while(compiler, ((while_stmt_t *) stmt)->data);
         case STMT_FUNCTION:
             wprintf(L"Functions are only allowed as top level statements!\n");
             return NULL;

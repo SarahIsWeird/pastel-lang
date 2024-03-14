@@ -23,6 +23,7 @@ typedef enum stmt_type_t {
     STMT_FUNCTION,
     STMT_EXTERN,
     STMT_ASSIGNMENT,
+    STMT_WHILE,
 } stmt_type_t;
 
 typedef enum variable_flags_t {
@@ -116,6 +117,11 @@ typedef struct assignment_stmt_data_t {
     expr_t *value;
 } assignment_stmt_data_t;
 
+typedef struct while_stmt_data_t {
+    expr_t *condition;
+    ptr_list_t *body; // List<stmt_t *>
+} while_stmt_data_t;
+
 /* Statements */
 
 typedef struct stmt_t {
@@ -147,6 +153,11 @@ typedef struct assignment_stmt_t {
     stmt_type_t stmt_type;
     assignment_stmt_data_t *data;
 } assignment_stmt_t;
+
+typedef struct while_stmt_t {
+    stmt_type_t stmt_type;
+    while_stmt_data_t *data;
+} while_stmt_t;
 
 void print_stmt(stmt_t *stmt, int indent);
 void print_expr(expr_t *expr, int indent);

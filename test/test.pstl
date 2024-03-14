@@ -9,4 +9,10 @@ func main() {
     var test: Int32 = myFunction(400, 20);
 
     print_n(test);
+
+    test = 0;
+    while (test < 10) {
+        test = test + 1;
+        print_n(test);
+    }
 }

@@ -81,6 +81,7 @@ static keyword_type_t keywords[] = {
         { L"false", KEYWORD_FALSE },
         { L"return", KEYWORD_RETURN },
         { L"extern", KEYWORD_EXTERN },
+        { L"while", KEYWORD_WHILE },
 };
 
 static size_t keyword_count = sizeof(keywords) / sizeof(keyword_type_t);

@@ -264,6 +264,18 @@ static expr_t *parse_primary(parser_t *parser) {
         return parse_if(parser);
     }
 
+    if (is_char(current_token, L'(')) {
+        advance();
+        expr_t *value = parse_expr(parser);
+
+        if (!is_char(current_token, L')')) {
+            expected(L"')' after parenthesis expression!\n");
+        }
+        advance();
+
+        return value;
+    }
+
     fprintf(stderr, "Unexpected token!\n");
     return NULL;
 }
@@ -384,11 +396,34 @@ static stmt_t *make_assignment_stmt_from_expr(expr_t *expr) {
     return make_assignment_stmt(var_expr->name, bin_expr_data->rhs);
 }
 
+static stmt_t *parse_while(parser_t *parser) {
+    advance();
+
+    expr_t *condition = parse_expr(parser);
+    if (condition == NULL) return NULL;
+
+    ptr_list_t *body = parse_body(parser);
+
+    while_stmt_data_t *data = (while_stmt_data_t *) malloc(sizeof(while_stmt_data_t));
+    data->condition = condition;
+    data->body = body;
+
+    while_stmt_t *stmt = (while_stmt_t *) malloc(sizeof(while_stmt_t));
+    stmt->stmt_type = STMT_WHILE;
+    stmt->data = data;
+
+    return (stmt_t *) stmt;
+}
+
 static stmt_t *parse_stmt(parser_t *parser) {
     if (is_keyword(current_token, KEYWORD_VAR)) {
         return parse_declaration(parser, 1);
     } else if (is_keyword(current_token, KEYWORD_LET)) {
         return parse_declaration(parser, 0);
+    }
+
+    if (is_keyword(current_token, KEYWORD_WHILE)) {
+        return parse_while(parser);
     }
 
     stmt_type_t stmt_type = STMT_EXPR;
