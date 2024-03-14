@@ -16,8 +16,12 @@ static int can_if_be_expr(if_expr_t *expr) {
     ptr_list_t *then_stmts = expr->data->then_stmts;
     ptr_list_t *else_stmts = expr->data->else_stmts;
 
-    // No else branch
+    if (then_stmts == NULL) return 0;
     if (else_stmts == NULL) return 0;
+
+    // Branch is empty
+    if (ptr_list_size(then_stmts) == 0) return 0;
+    if (ptr_list_size(else_stmts) == 0) return 0;
 
     // Last statement in a branch has to be an expression statement for us to get a value from the branch.
 
@@ -64,14 +68,18 @@ typed_value_t *compile_if_expr(compiler_t *compiler, if_expr_t *if_expr, int is_
     LLVMPositionBuilderAtEnd(compiler->builder, then_block);
 
     size_t i;
-    typed_value_t *then_value;
+    typed_value_t *then_value = NULL;
+    int then_has_ret = 0;
 
     for (i = 0; i < ptr_list_size(then_stmts); i++) {
         stmt_t *stmt = (stmt_t *) ptr_list_at(then_stmts, i);
         then_value = compile_stmt(compiler, stmt);
         if (then_value == NULL) return NULL;
 
-        if (LLVMIsAReturnInst(then_value->value)) break;
+        if (LLVMIsAReturnInst(then_value->value)) {
+            then_has_ret = 1;
+            break;
+        }
     }
 
     /*
@@ -82,7 +90,7 @@ typed_value_t *compile_if_expr(compiler_t *compiler, if_expr_t *if_expr, int is_
     typed_value_t *if_value = malloc_s(typed_value_t);
     if_value->type = compiler->void_type;
 
-    if (!LLVMIsAReturnInst(then_value->value)) {
+    if (!then_has_ret) {
         if_value->value = LLVMBuildBr(compiler->builder, cont_block);
     } else {
         if_value->value = condition->value;
@@ -91,7 +99,7 @@ typed_value_t *compile_if_expr(compiler_t *compiler, if_expr_t *if_expr, int is_
     then_block = LLVMGetInsertBlock(compiler->builder); // We might be in a different block than where we started.
 
     typed_value_t *else_value = NULL;
-    // FIXME: empty block would deref null
+    int else_has_ret = 0;
     if (else_stmts != NULL) {
         LLVMAppendExistingBasicBlock(current_function, else_block);
         LLVMPositionBuilderAtEnd(compiler->builder, else_block);
@@ -101,10 +109,13 @@ typed_value_t *compile_if_expr(compiler_t *compiler, if_expr_t *if_expr, int is_
             else_value = compile_stmt(compiler, stmt);
             if (else_value == NULL) return NULL;
 
-            if (LLVMIsAReturnInst(else_value->value)) break;
+            if (LLVMIsAReturnInst(else_value->value)) {
+                else_has_ret = 1;
+                break;
+            }
         }
 
-        if (!LLVMIsAReturnInst(else_value->value)) {
+        if (!else_has_ret) {
             LLVMBuildBr(compiler->builder, cont_block);
         }
 
@@ -114,7 +125,7 @@ typed_value_t *compile_if_expr(compiler_t *compiler, if_expr_t *if_expr, int is_
     /*
      * Same as before, but we omit the cont_block if there's early returns in both branches.
      */
-    if (LLVMIsAReturnInst(then_value->value) && LLVMIsAReturnInst(else_value->value)) {
+    if (then_has_ret && else_has_ret) {
         return if_value;
     }
 
@@ -126,8 +137,13 @@ typed_value_t *compile_if_expr(compiler_t *compiler, if_expr_t *if_expr, int is_
         return if_value;
     }
 
-    if (then_value->type != else_value->type) {
-        fprintf(stderr, "Types must match for both branches when using if as an expression!\n");
+    type_t *then_type = NULL;
+    if (then_value != NULL) then_type = then_value->type;
+    type_t *else_type = NULL;
+    if (else_value != NULL) else_type = else_value->type;
+
+    if ((then_type != else_type) || (then_value == NULL) || (else_value == NULL)) {
+        fprintf(stderr, "Types must match for both branches and blocks can't be empty when using if as an expression!\n");
         return NULL;
     }
 
