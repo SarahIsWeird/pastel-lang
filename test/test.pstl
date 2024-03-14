@@ -1,0 +1,12 @@
+extern print_n(value: Int32);
+
+func myFunction(a: Int32, b: Int32): Int32 {
+    // Do some magic
+    return a + b;
+}
+
+func main() {
+    var test: Int32 = myFunction(400, 20);
+
+    print_n(test);
+}
