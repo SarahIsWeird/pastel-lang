@@ -113,12 +113,14 @@ static token_operator_t *get_operator(const wchar_t *start, size_t length, token
     return NULL;
 }
 
+#define max(a, b) (a > b ? a : b)
+
 static token_keyword_t *get_keyword(const wchar_t *start, size_t length, token_pos_t token_pos) {
     size_t i;
     for (i = 0; i < keyword_count; i++) {
         keyword_type_t *type = &keywords[i];
 
-        if (!wcsncmp(type->str, start, length)) {
+        if (!wcsncmp(type->str, start, max(length, wcslen(type->str)))) {
             return token_new_keyword(type->value, token_pos);
         }
     }
