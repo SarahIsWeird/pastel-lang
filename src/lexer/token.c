@@ -37,6 +37,15 @@ token_integer_t *token_new_integer(int value, token_pos_t token_pos) {
     return token;
 }
 
+token_float_t *token_new_float(double value, token_pos_t token_pos) {
+    token_float_t *token = (token_float_t *) token_new(TOKEN_FLOAT, token_pos);
+
+    token->value = (double *) malloc(sizeof(double));
+    *(token->value) = value;
+
+    return token;
+}
+
 token_char_t *token_new_char(wchar_t value, token_pos_t token_pos) {
     token_char_t *token = (token_char_t *) token_new(TOKEN_CHAR, token_pos);
 

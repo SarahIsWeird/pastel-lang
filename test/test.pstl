@@ -1,4 +1,5 @@
 extern print_n(value: Int32);
+extern print_d(value: Float64);
 
 func myFunction(a: Int32, b: Int32): Int32 {
     // Do some magic
@@ -9,6 +10,7 @@ func main() {
     var test: Int32 = myFunction(400, 20);
 
     print_n(test);
+    print_d(43.5);
 
     var i: UInt8 = 0;
     while (i < 10) {

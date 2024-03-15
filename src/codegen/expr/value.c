@@ -17,6 +17,13 @@ typed_value_t *compile_int_expr(compiler_t *compiler, int_expr_t *int_expr) {
     return value;
 }
 
+typed_value_t *compile_float_expr(compiler_t *compiler, float_expr_t *float_expr) {
+    typed_value_t *value = malloc_s(typed_value_t);
+    value->type = compiler->float64_type;
+    value->value = LLVMConstReal(compiler->float64_type->llvm_type, *(float_expr->data));
+    return value;
+}
+
 typed_value_t *compile_bool_expr(compiler_t *compiler, bool_expr_t *bool_expr) {
     typed_value_t *value = malloc_s(typed_value_t);
     value->type = compiler->bool_type;

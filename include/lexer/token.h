@@ -7,6 +7,7 @@ typedef enum token_type_t {
     TOKEN_NULL = 0,
     TOKEN_IDENTIFIER,
     TOKEN_INTEGER,
+    TOKEN_FLOAT,
     TOKEN_CHAR,
     TOKEN_KEYWORD,
     TOKEN_OPERATOR,
@@ -50,6 +51,12 @@ typedef struct token_integer_t {
     int value;
 } token_integer_t;
 
+typedef struct token_float_t {
+    token_type_t type;
+    token_pos_t token_pos;
+    double *value;
+} token_float_t;
+
 typedef struct token_char_t {
     token_type_t type;
     token_pos_t token_pos;
@@ -71,6 +78,7 @@ typedef struct token_operator_t {
 token_t *token_new(token_type_t type, token_pos_t token_pos);
 token_identifier_t *token_new_identifier(const wchar_t *start, size_t length, token_pos_t token_pos);
 token_integer_t *token_new_integer(int value, token_pos_t token_pos);
+token_float_t *token_new_float(double value, token_pos_t token_pos);
 token_char_t *token_new_char(wchar_t value, token_pos_t token_pos);
 token_keyword_t *token_new_keyword(keyword_t keyword, token_pos_t token_pos);
 token_operator_t *token_new_operator(const wchar_t *start, size_t length, token_pos_t token_pos);

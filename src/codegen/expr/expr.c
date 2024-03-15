@@ -13,6 +13,8 @@ typed_value_t *compile_expr(compiler_t *compiler, expr_t *expr, int is_stmt) {
     switch (expr->expr_type) {
         case EXPR_INT:
             return compile_int_expr(compiler, (int_expr_t *) expr);
+        case EXPR_FLOAT:
+            return compile_float_expr(compiler, (float_expr_t *) expr);
         case EXPR_BOOL:
             return compile_bool_expr(compiler, (bool_expr_t *) expr);
         case EXPR_VARIABLE:

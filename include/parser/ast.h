@@ -9,8 +9,9 @@
 #include "../../src/util/ptr_list.h"
 
 typedef enum expr_type_t {
-    EXPR_INT,
     EXPR_BOOL,
+    EXPR_INT,
+    EXPR_FLOAT,
     EXPR_VARIABLE,
     EXPR_BINARY,
     EXPR_CALL,
@@ -89,6 +90,11 @@ typedef struct bool_expr_t {
     expr_type_t expr_type;
     int data;
 } bool_expr_t;
+
+typedef struct float_expr_t {
+    expr_type_t expr_type;
+    double *data;
+} float_expr_t;
 
 typedef struct variable_expr_t {
     expr_type_t expr_type;

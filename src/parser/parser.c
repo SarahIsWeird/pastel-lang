@@ -19,6 +19,7 @@
 
 #define get_identifier() (((token_identifier_t *) current_token)->value)
 #define get_integer() (((token_integer_t *) current_token)->value)
+#define get_float() (((token_float_t *) current_token)->value)
 #define get_operator() (((token_operator_t *) current_token)->op)
 
 static expr_t *parse_expr(parser_t *parser);
@@ -205,6 +206,15 @@ static expr_t *parse_int(parser_t *parser) {
     return (expr_t *) expr;
 }
 
+static expr_t *parse_float(parser_t *parser) {
+    float_expr_t *expr = (float_expr_t *) malloc(sizeof(float_expr_t));
+    expr->expr_type = EXPR_FLOAT;
+    expr->data = get_float();
+    advance();
+
+    return (expr_t *) expr;
+}
+
 static ptr_list_t *parse_body(parser_t *parser);
 
 static expr_t *parse_if(parser_t *parser) {
@@ -253,6 +263,8 @@ static expr_t *parse_primary(parser_t *parser) {
             return parse_identifier(parser);
         case TOKEN_INTEGER:
             return parse_int(parser);
+        case TOKEN_FLOAT:
+            return parse_float(parser);
         default:
             break;
     }

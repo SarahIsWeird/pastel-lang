@@ -115,6 +115,9 @@ void print_expr(expr_t *expr, int indent) {
         case EXPR_INT:
             wprintf(L"Int: %d\n", ((int_expr_t *) expr)->data);
             break;
+        case EXPR_FLOAT:
+            wprintf(L"Float: %d\n", *((float_expr_t *) expr)->data);
+            break;
         case EXPR_VARIABLE:
             wprintf(L"Variable: %ls\n", ((variable_expr_t *) expr)->name);
             break;

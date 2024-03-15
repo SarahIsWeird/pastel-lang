@@ -49,6 +49,10 @@ void print_n(int v) {
     wprintf(L"%d\n", v);
 }
 
+void print_d(double d) {
+    wprintf(L"%lf", d);
+}
+
 void dump_ast(ptr_list_t *top_level_stmts) {
     size_t i;
     for (i = 0; i < ptr_list_size(top_level_stmts); i++) {
@@ -86,6 +90,7 @@ int run_jit(compiler_t *compiler) {
 
     LLVMAddSymbol("foo", foo);
     LLVMAddSymbol("print_n", print_n);
+    LLVMAddSymbol("print_d", print_d);
 
     int result = LLVMRunFunctionAsMain(jit, compiler_get_main(compiler), 0, NULL, NULL);
 
@@ -110,12 +115,12 @@ int main() {
 
     // dump_ast(top_level_stmts);
 
-    compiler_t *compiler = compiler_new(top_level_stmts, OPT_ALL);
+    compiler_t *compiler = compiler_new(top_level_stmts, OPT_NONE);
     if (compiler_compile(compiler)) {
         return 1;
     }
 
-    // compiler_dump_all(compiler, 1);
+    compiler_dump_all(compiler, 1);
 
     run_jit(compiler);
 

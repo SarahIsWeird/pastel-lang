@@ -155,14 +155,26 @@ static token_t *lex_identifier(lexer_t *lexer) {
 
 static token_t *lex_number(lexer_t *lexer) {
     token_pos_t pos = lexer->current_token_pos;
-    const wchar_t *start = lexer->input;
+    const wchar_t *start = lexer->input + lexer->position;
     wchar_t *end;
-    int value = (int) wcstol(lexer->input + lexer->position, &end, 10);
+    int int_value = (int) wcstol(start, &end, 10);
 
-    lexer->position = end - lexer->input;
-    lexer->current_token_pos.column += end - start;
+    size_t offset = end - start;
+    lexer->position += offset;
 
-    return (token_t *) token_new_integer(value, pos);
+    if (current_char() != L'.') {
+        lexer->current_token_pos.column += offset;
+        return (token_t *) token_new_integer(int_value, pos);
+    }
+
+    lexer->position -= offset; // Rewind to the start of the number
+    double double_value = wcstod(start, &end);
+
+    offset = end - start;
+    lexer->position += offset;
+    lexer->current_token_pos.column += offset;
+
+    return (token_t *) token_new_float(double_value, pos);
 }
 
 static int is_operator_starting(lexer_t *lexer) {

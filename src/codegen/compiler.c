@@ -29,6 +29,9 @@ static void init_types(compiler_t *compiler) {
     compiler->uint32_type = create_type(L"UInt32", LLVMInt32TypeInContext(compiler->context), TYPE_INT | TYPE_UNSIGNED, 4);
     compiler->uint64_type = create_type(L"UInt64", LLVMInt64TypeInContext(compiler->context), TYPE_INT | TYPE_UNSIGNED, 8);
 
+    compiler->float32_type = create_type(L"Float32", LLVMFloatTypeInContext(compiler->context), TYPE_FLOAT, 4);
+    compiler->float64_type = create_type(L"Float64", LLVMDoubleTypeInContext(compiler->context), TYPE_FLOAT, 4);
+
     compiler->types = ptr_list_new();
     ptr_list_push(compiler->types, compiler->void_type);
     ptr_list_push(compiler->types, compiler->bool_type);
@@ -42,6 +45,9 @@ static void init_types(compiler_t *compiler) {
     ptr_list_push(compiler->types, compiler->uint16_type);
     ptr_list_push(compiler->types, compiler->uint32_type);
     ptr_list_push(compiler->types, compiler->uint64_type);
+
+    ptr_list_push(compiler->types, compiler->float32_type);
+    ptr_list_push(compiler->types, compiler->float64_type);
 }
 
 compiler_t *compiler_new(ptr_list_t *stmts, compiler_opt_level_t opt_level) {

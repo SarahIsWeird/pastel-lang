@@ -15,7 +15,8 @@
 typedef enum type_flags_t {
     TYPE_ANY = 0,
     TYPE_INT = 1,
-    TYPE_SIGNED = 2,
+    TYPE_FLOAT = 2,
+    TYPE_SIGNED = 4,
     TYPE_UNSIGNED = 0,
 } type_flags_t;
 
@@ -78,6 +79,9 @@ struct compiler_t {
     type_t *uint16_type;
     type_t *uint32_type;
     type_t *uint64_type;
+
+    type_t *float32_type;
+    type_t *float64_type;
 
     compiler_opt_level_t opt_level;
     LLVMPassManagerRef function_pm;
