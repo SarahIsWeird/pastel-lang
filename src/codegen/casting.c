@@ -18,15 +18,26 @@ typed_value_t *cast_to_int(compiler_t *compiler, typed_value_t *value, type_t *d
         cant_cast();
     }
 
+    typed_value_t *cast_value = malloc_s(typed_value_t);
+    cast_value->type = dest_type;
+
     int is_signed = (dest_type->flags & TYPE_SIGNED) != 0;
+
+    if ((value->type->flags & TYPE_FLOAT) != 0) {
+        if (is_signed) {
+            cast_value->value = LLVMBuildFPToSI(compiler->builder, value->value, dest_type->llvm_type, "cast_tmp");;
+        } else {
+            cast_value->value = LLVMBuildFPToUI(compiler->builder, value->value, dest_type->llvm_type, "cast_tmp");;
+        }
+
+        return cast_value;
+    }
 
     if (dest_type->size > value->type->size) {
         // The new type can fit all possible values of the old one, so we don't do signed conversion.
         is_signed = 0;
     }
 
-    typed_value_t *cast_value = malloc_s(typed_value_t);
-    cast_value->type = dest_type;
     cast_value->value = LLVMBuildIntCast2(compiler->builder, value->value, dest_type->llvm_type, is_signed, "cast_tmp");
     return cast_value;
 }
@@ -38,6 +49,18 @@ typed_value_t *cast_to_float(compiler_t *compiler, typed_value_t *value, type_t 
 
     typed_value_t *cast_value = malloc_s(typed_value_t);
     cast_value->type = dest_type;
+
+    type_flags_t src_flags = value->type->flags;
+    if ((src_flags & TYPE_INT) != 0) {
+        if ((src_flags & TYPE_SIGNED) != 0) {
+            cast_value->value = LLVMBuildSIToFP(compiler->builder, value->value, dest_type->llvm_type, "cast_tmp");
+        } else {
+            cast_value->value = LLVMBuildUIToFP(compiler->builder, value->value, dest_type->llvm_type, "cast_tmp");
+        }
+
+        return cast_value;
+    }
+
     cast_value->value = LLVMBuildFPCast(compiler->builder, value->value, dest_type->llvm_type, "cast_tmp");
     return cast_value;
 }

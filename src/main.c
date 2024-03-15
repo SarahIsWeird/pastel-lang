@@ -50,7 +50,7 @@ void print_n(int v) {
 }
 
 void print_d(double d) {
-    wprintf(L"%lf", d);
+    wprintf(L"%lf\n", d);
 }
 
 void dump_ast(ptr_list_t *top_level_stmts) {
@@ -115,7 +115,7 @@ int main() {
 
     // dump_ast(top_level_stmts);
 
-    compiler_t *compiler = compiler_new(top_level_stmts, OPT_NONE);
+    compiler_t *compiler = compiler_new(top_level_stmts, OPT_ALL);
     if (compiler_compile(compiler)) {
         return 1;
     }
