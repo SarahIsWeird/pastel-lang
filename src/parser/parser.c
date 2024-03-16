@@ -53,6 +53,10 @@ static operator_precedence_t operator_precedences[] = {
 
 static size_t operator_count = sizeof(operator_precedences) / sizeof(operator_precedence_t);
 
+static const wchar_t *unary_operators[] = {
+        L"!",
+};
+
 parser_t *parser_new(ptr_list_t *tokens) {
     parser_t *parser = (parser_t *) malloc(sizeof(parser_t));
 
@@ -255,6 +259,19 @@ static expr_t *parse_bool(parser_t *parser) {
     return (expr_t *) expr;
 }
 
+static expr_t *parse_unary_expr(parser_t *parser) {
+    unary_expr_data_t *data = (unary_expr_data_t *) malloc(sizeof(unary_expr_data_t));
+    data->op = get_identifier();
+    advance();
+
+    data->value = parse_expr(parser);
+
+    unary_expr_t *expr = (unary_expr_t *) malloc(sizeof(unary_expr_t));
+    expr->expr_type = EXPR_UNARY;
+    expr->data = data;
+    return (expr_t *) expr;
+}
+
 static expr_t *parse_primary(parser_t *parser) {
     skip_end_of_statements(parser);
 
@@ -265,6 +282,8 @@ static expr_t *parse_primary(parser_t *parser) {
             return parse_int(parser);
         case TOKEN_FLOAT:
             return parse_float(parser);
+        case TOKEN_OPERATOR:
+            return parse_unary_expr(parser);
         default:
             break;
     }

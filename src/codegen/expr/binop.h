@@ -7,6 +7,7 @@
 
 #include "../utils.h"
 
+typed_value_t *compile_unary_expr(compiler_t *compiler, unary_expr_t *binary_expr);
 typed_value_t *compile_binary_expr(compiler_t *compiler, binary_expr_t *binary_expr);
 
 #endif //PASTEL_BINOP_H

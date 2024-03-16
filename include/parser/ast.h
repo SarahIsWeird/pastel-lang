@@ -13,6 +13,7 @@ typedef enum expr_type_t {
     EXPR_INT,
     EXPR_FLOAT,
     EXPR_VARIABLE,
+    EXPR_UNARY,
     EXPR_BINARY,
     EXPR_CALL,
     EXPR_IF,
@@ -29,10 +30,11 @@ typedef enum stmt_type_t {
 } stmt_type_t;
 
 typedef enum variable_flags_t {
-    VAR_IS_PARAM = 1,
-    VAR_IS_MUTABLE = 2,
+    VAR_IS_PARAM = 0x1,
+    VAR_IS_MUTABLE = 0x2,
     VAR_IS_IMMUTABLE = 0,
-    VAR_IS_INITIALIZED = 4,
+    VAR_IS_INITIALIZED = 0x4,
+    VAR_IS_POINTER = 0x8,
 } variable_flags_t;
 
 typedef struct typed_ast_value_t {
@@ -51,6 +53,11 @@ typedef struct prototype_t {
 /* Expression data structs */
 
 typedef struct expr_t expr_t;
+
+typedef struct unary_expr_data_t {
+    wchar_t *op;
+    expr_t *value;
+} unary_expr_data_t;
 
 typedef struct binary_expr_data_t {
     wchar_t *op;
@@ -100,6 +107,11 @@ typedef struct variable_expr_t {
     expr_type_t expr_type;
     wchar_t *name;
 } variable_expr_t;
+
+typedef struct unary_expr_t {
+    expr_type_t expr_type;
+    unary_expr_data_t *data;
+} unary_expr_t;
 
 typedef struct binary_expr_t {
     expr_type_t expr_type;

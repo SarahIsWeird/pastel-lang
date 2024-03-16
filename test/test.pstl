@@ -12,6 +12,10 @@ func main() {
     print_n(test);
     print_d(43.5);
 
+    if !false {
+        print_n(123);
+    }
+
     var i: UInt8 = 0;
     while (i < 10) {
         i = i + 1;

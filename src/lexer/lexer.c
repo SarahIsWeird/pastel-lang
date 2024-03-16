@@ -52,6 +52,7 @@ static wchar_t *operators[] = {
         L"*",
         L"/",
         L"to",
+        L"!",
 };
 
 static size_t operator_count = sizeof(operators) / sizeof(wchar_t *);

@@ -101,6 +101,7 @@ void print_stmt(stmt_t *stmt, int indent) {
 
 void print_expr(expr_t *expr, int indent) {
     size_t i;
+    unary_expr_data_t *unary_expr_data;
     binary_expr_data_t *binary_expr_data;
     call_expr_data_t *call_expr_data;
     if_expr_data_t *if_expr_data;
@@ -120,6 +121,11 @@ void print_expr(expr_t *expr, int indent) {
             break;
         case EXPR_VARIABLE:
             wprintf(L"Variable: %ls\n", ((variable_expr_t *) expr)->name);
+            break;
+        case EXPR_UNARY:
+            unary_expr_data = ((unary_expr_t *) expr)->data;
+            wprintf(L"Unary expression: %ls\n", unary_expr_data->op);
+            print_expr(unary_expr_data->value, indent + 2);
             break;
         case EXPR_BINARY:
             binary_expr_data = ((binary_expr_t *) expr)->data;

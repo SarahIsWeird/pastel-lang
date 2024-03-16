@@ -14,18 +14,26 @@
 
 typedef enum type_flags_t {
     TYPE_ANY = 0,
-    TYPE_INT = 1,
-    TYPE_FLOAT = 2,
-    TYPE_SIGNED = 4,
+    TYPE_INT = 0x1,
+    TYPE_FLOAT = 0x2,
+    TYPE_SIGNED = 0x4,
     TYPE_UNSIGNED = 0,
+    TYPE_POINTER = 0x8,
 } type_flags_t;
 
-typedef struct type_t {
+typedef struct type_t type_t;
+
+typedef struct type_metadata_t {
+    type_t *inner_type;
+} type_metadata_t;
+
+struct type_t {
     wchar_t *name;
     LLVMTypeRef llvm_type;
     type_flags_t flags;
     int size; // Size in bytes
-} type_t;
+    type_metadata_t *metadata;
+};
 
 typedef struct typed_value_t {
     type_t *type;

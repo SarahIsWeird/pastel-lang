@@ -10,6 +10,27 @@
 #include <llvm-c/Core.h>
 #include <stdio.h>
 
+typed_value_t *compile_unary_expr(compiler_t *compiler, unary_expr_t *unary_expr) {
+    typed_value_t *value = compile_expr(compiler, unary_expr->data->value, 0);
+    if (value == NULL) return NULL;
+
+    typed_value_t *ret_value = malloc_s(typed_value_t);
+    if (!wcscmp(L"!", unary_expr->data->op)) {
+        if (value->type != compiler->bool_type) {
+            fprintf(stderr, "Negation unary operator '!' only works on boolean values, not %ls.\n", value->type->name);
+            return NULL;
+        }
+
+        ret_value->type = compiler->bool_type;
+        ret_value->value = LLVMBuildNot(compiler->builder, value->value, "not_tmp");
+        return ret_value;
+    }
+
+    free(ret_value);
+    fprintf(stderr, "Unknown unary operator '%ls'!\n", unary_expr->data->op);
+    return NULL;
+}
+
 static typed_value_t *create_arithmetic_int_binop_inst(LLVMBuilderRef builder, type_t *int_type, wchar_t *op, LLVMValueRef lhs, LLVMValueRef rhs) {
     typed_value_t *value = malloc_s(typed_value_t);
 

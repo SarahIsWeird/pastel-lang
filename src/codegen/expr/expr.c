@@ -19,6 +19,8 @@ typed_value_t *compile_expr(compiler_t *compiler, expr_t *expr, int is_stmt) {
             return compile_bool_expr(compiler, (bool_expr_t *) expr);
         case EXPR_VARIABLE:
             return compile_variable_expr(compiler, (variable_expr_t *) expr);
+        case EXPR_UNARY:
+            return compile_unary_expr(compiler, (unary_expr_t *) expr);
         case EXPR_BINARY:
             return compile_binary_expr(compiler, (binary_expr_t *) expr);
         case EXPR_CALL:

@@ -24,7 +24,14 @@ type_t *create_type(wchar_t *name, LLVMTypeRef llvm_type, type_flags_t flags, in
     type->llvm_type = llvm_type;
     type->flags = flags;
     type->size = size;
+    type->metadata = NULL;
     return type;
+}
+
+type_metadata_t *create_type_metadata(type_t *inner_type) {
+    type_metadata_t *metadata = malloc_s(type_metadata_t);
+    metadata->inner_type = inner_type;
+    return metadata;
 }
 
 type_t *find_type(compiler_t *compiler, const wchar_t *name) {
